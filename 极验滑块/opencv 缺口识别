@@ -1,0 +1,52 @@
+th, tw = slice_image1.shape[:2]
+
+# 灰度转换
+captcha_image = cv2.cvtColor(captcha_image1, cv2.COLOR_BGR2GRAY)
+slice_image = cv2.cvtColor(slice_image1, cv2.COLOR_BGR2GRAY)
+
+# 高斯模糊
+captcha_image = cv2.GaussianBlur(captcha_image, (5, 5), 0, 0)
+slice_image = cv2.GaussianBlur(slice_image, (5, 5), 0, 0)
+
+# Canny 边缘检测
+captcha_image = cv2.Canny(captcha_image, 255, 255)
+slice_image = cv2.Canny(slice_image, 255, 255)
+
+# 模板匹配
+captcha_rv = cv2.matchTemplate(captcha_image, slice_image, cv2.TM_CCOEFF_NORMED)
+min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(captcha_rv)
+
+# 识别区域
+identify_areas = (max_loc[0] + tw, max_loc[1] + th)
+cv2.rectangle(captcha_image1, max_loc, identify_areas, (0, 0, 255), 2)
+
+# cv2.namedWindow("captcha", cv2.WINDOW_KEEPRATIO)
+# cv2.namedWindow("slice", cv2.WINDOW_KEEPRATIO)
+# cv2.namedWindow("identify", cv2.WINDOW_KEEPRATIO)
+# cv2.imshow("captcha", captcha_image)
+# cv2.imshow("slice", slice_image)
+# cv2.imshow("identify", captcha_image1)
+# cv2.waitKey()
+
+
+
+segmentation_height = 10
+segmentation_width = 80
+end_height = 160
+end_width = 260
+ut = [39, 38, 48, 49, 41, 40, 46, 47, 35, 34, 50, 51, 33, 32, 28, 29, 27, 26, 36, 37, 31, 30, 44, 45, 43, 42, 12, 13, 23, 22, 14, 15, 21, 20, 8, 9, 25, 24, 6, 7, 3, 2, 0, 1, 11, 10, 4, 5, 19, 18, 16, 17]
+
+with Image.open(os.path.join(self.path, "bg.jpg")) as image:
+    # 创建底图
+    dst = Image.new("RGB", (end_width, end_height))
+    for i in range(len(ut)):
+        x = ut[i] % 26 * 12 + 1
+        y = segmentation_width if 25 < ut[i] else 0
+        cut = image.crop((x, y, x + segmentation_height, y + segmentation_width))
+
+        new_x = i % 26 * 10
+        new_y = segmentation_width if i > 25 else 0
+        dst.paste(cut, (new_x, new_y))
+
+    dst.save(os.path.join(self.path, "reduction_captcha.jpg"))
+    print("[*] reduction captcha success!")
